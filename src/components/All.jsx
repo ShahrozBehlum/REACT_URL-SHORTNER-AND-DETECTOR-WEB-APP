@@ -2,10 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Shield, Link as LinkIcon, Home, Info, Mail, LogOut, CheckCircle, AlertTriangle, Copy, ExternalLink, Loader, Trash2, X, Menu } from 'lucide-react';
 
 const App = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [showSignup, setShowSignup] = useState(false);
   const [activeTab, setActiveTab] = useState('home');
-  const [user, setUser] = useState(null);
   const [urlInput, setUrlInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -14,25 +11,19 @@ const App = () => {
   const [apiKey, setApiKey] = useState('2b05b6928b45f73765133c0c95a35790cedca4426f2d209631d821ec325bb07b');
   const [showApiKeyInput, setShowApiKeyInput] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  
-  const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [signupData, setSignupData] = useState({ name: '', email: '', password: '', confirmPassword: '' });
 
   const VIRUSTOTAL_API_KEY = apiKey || '2b05b6928b45f73765133c0c95a35790cedca4426f2d209631d821ec325bb07b';
 
   useEffect(() => {
-    const storedUser = localStorage.getItem('currentUser');
     const storedApiKey = localStorage.getItem('virusTotalApiKey');
-    
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-      setIsLoggedIn(true);
-      const userUrls = JSON.parse(localStorage.getItem(`urls_${JSON.parse(storedUser).email}`)) || [];
-      setUrlHistory(userUrls);
-    }
+    const storedHistory = localStorage.getItem('urlHistory');
     
     if (storedApiKey) {
       setApiKey(storedApiKey);
+    }
+    
+    if (storedHistory) {
+      setUrlHistory(JSON.parse(storedHistory));
     }
   }, []);
 
@@ -46,66 +37,12 @@ const App = () => {
     }
   };
 
-  const handleSignup = (e) => {
-    e.preventDefault();
-    if (signupData.password !== signupData.confirmPassword) {
-      alert('Passwords do not match!');
-      return;
+  const clearHistory = () => {
+    if (window.confirm('Are you sure you want to clear all URL history?')) {
+      setUrlHistory([]);
+      localStorage.removeItem('urlHistory');
+      alert('History cleared successfully!');
     }
-    
-    const users = JSON.parse(localStorage.getItem('users')) || [];
-    const userExists = users.find(u => u.email === signupData.email);
-    
-    if (userExists) {
-      alert('User already exists! Please login.');
-      return;
-    }
-    
-    const newUser = {
-      name: signupData.name,
-      email: signupData.email,
-      password: signupData.password,
-      createdAt: new Date().toISOString()
-    };
-    
-    users.push(newUser);
-    localStorage.setItem('users', JSON.stringify(users));
-    alert('Account created successfully! Please login.');
-    setShowSignup(false);
-    setSignupData({ name: '', email: '', password: '', confirmPassword: '' });
-  };
-
-  const handleLogin = (e) => {
-    e.preventDefault();
-    const users = JSON.parse(localStorage.getItem('users')) || [];
-    const user = users.find(u => u.email === loginData.email && u.password === loginData.password);
-    
-    if (user) {
-      setUser({ name: user.name, email: user.email });
-      setIsLoggedIn(true);
-      localStorage.setItem('currentUser', JSON.stringify({ name: user.name, email: user.email }));
-      const userUrls = JSON.parse(localStorage.getItem(`urls_${user.email}`)) || [];
-      setUrlHistory(userUrls);
-      setLoginData({ email: '', password: '' });
-    } else {
-      alert('Invalid credentials!');
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setUser(null);
-    setUrlHistory([]);
-    setFeedback(null);
-    setUrlInput('');
-    setActiveTab('home');
-    localStorage.removeItem('currentUser');
-  };
-
-  const deleteUrl = (index) => {
-    const newHistory = urlHistory.filter((_, i) => i !== index);
-    setUrlHistory(newHistory);
-    localStorage.setItem(`urls_${user.email}`, JSON.stringify(newHistory));
   };
 
   const shortenUrlWithApi = async (longUrl) => {
@@ -264,7 +201,9 @@ const App = () => {
       
       const newHistory = [urlData, ...urlHistory];
       setUrlHistory(newHistory);
-      localStorage.setItem(`urls_${user.email}`, JSON.stringify(newHistory));
+      localStorage.setItem('urlHistory', JSON.stringify(newHistory));
+      
+      setUrlInput('');
       
     } catch (error) {
       console.error('Error:', error);
@@ -279,144 +218,17 @@ const App = () => {
     alert('Copied to clipboard!');
   };
 
+  const deleteUrl = (index) => {
+    const newHistory = urlHistory.filter((_, i) => i !== index);
+    setUrlHistory(newHistory);
+    localStorage.setItem('urlHistory', JSON.stringify(newHistory));
+  };
+
   const handleContactSubmit = (e) => {
     e.preventDefault();
     alert('Message sent successfully! We will get back to you soon.');
     setContactForm({ name: '', email: '', message: '' });
   };
-
-  if (!isLoggedIn) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 flex items-center justify-center p-4">
-        <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg sm:shadow-2xl p-6 sm:p-8 w-full max-w-md border border-gray-100 mx-4">
-          <div className="flex items-center justify-center mb-6 sm:mb-8">
-            <Shield className="w-10 h-10 sm:w-12 sm:h-12 text-blue-600 mr-2 sm:mr-3" />
-            <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-              SMTECH
-            </h1>
-          </div>
-          
-          {!showSignup ? (
-            <form onSubmit={handleLogin} className="space-y-4 sm:space-y-6">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 text-center mb-4 sm:mb-6">Welcome Back</h2>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Email</label>
-                <input
-                  type="email"
-                  value={loginData.email}
-                  onChange={(e) => setLoginData({...loginData, email: e.target.value})}
-                  className="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm sm:text-base"
-                  placeholder="your@email.com"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Password</label>
-                <input
-                  type="password"
-                  value={loginData.password}
-                  onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-                  className="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm sm:text-base"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 sm:py-3 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition text-sm sm:text-base"
-              >
-                Login
-              </button>
-              
-              <p className="text-center text-gray-600 text-sm sm:text-base">
-                Don't have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => setShowSignup(true)}
-                  className="text-blue-600 font-semibold hover:underline"
-                >
-                  Sign Up
-                </button>
-              </p>
-            </form>
-          ) : (
-            <form onSubmit={handleSignup} className="space-y-3 sm:space-y-5">
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-800 text-center mb-4 sm:mb-6">Create Account</h2>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Name</label>
-                <input
-                  type="text"
-                  value={signupData.name}
-                  onChange={(e) => setSignupData({...signupData, name: e.target.value})}
-                  className="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm sm:text-base"
-                  placeholder="John Doe"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Email</label>
-                <input
-                  type="email"
-                  value={signupData.email}
-                  onChange={(e) => setSignupData({...signupData, email: e.target.value})}
-                  className="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm sm:text-base"
-                  placeholder="your@email.com"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Password</label>
-                <input
-                  type="password"
-                  value={signupData.password}
-                  onChange={(e) => setSignupData({...signupData, password: e.target.value})}
-                  className="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm sm:text-base"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1 sm:mb-2">Confirm Password</label>
-                <input
-                  type="password"
-                  value={signupData.confirmPassword}
-                  onChange={(e) => setSignupData({...signupData, confirmPassword: e.target.value})}
-                  className="w-full px-4 py-2 sm:py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition text-sm sm:text-base"
-                  placeholder="••••••••"
-                  required
-                />
-              </div>
-              
-              <button
-                type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-2 sm:py-3 rounded-lg font-semibold hover:shadow-lg transform hover:-translate-y-0.5 transition text-sm sm:text-base"
-              >
-                Sign Up
-              </button>
-              
-              <p className="text-center text-gray-600 text-sm sm:text-base">
-                Already have an account?{' '}
-                <button
-                  type="button"
-                  onClick={() => setShowSignup(false)}
-                  className="text-blue-600 font-semibold hover:underline"
-                >
-                  Login
-                </button>
-              </p>
-            </form>
-          )}
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
@@ -463,29 +275,12 @@ const App = () => {
             </div>
             
             {/* Mobile Menu Button */}
-            <div className="flex md:hidden items-center space-x-2">
-              <span className="text-xs sm:text-sm font-medium text-gray-700 truncate max-w-[100px] sm:max-w-[150px]">
-                {user?.name}
-              </span>
+            <div className="flex md:hidden items-center">
               <button
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                 className="p-1.5 rounded-lg text-gray-600 hover:bg-gray-100"
               >
                 <Menu className="w-5 h-5 sm:w-6 sm:h-6" />
-              </button>
-            </div>
-            
-            {/* User Info & Logout (Desktop) */}
-            <div className="hidden md:flex items-center space-x-2 sm:space-x-3">
-              <span className="text-gray-700 font-medium text-sm sm:text-base truncate max-w-[120px] sm:max-w-none">
-                {user?.name}
-              </span>
-              <button
-                onClick={handleLogout}
-                className="flex items-center px-3 py-1.5 sm:px-4 sm:py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium text-sm sm:text-base"
-              >
-                <LogOut className="w-4 h-4 mr-1 sm:mr-2" />
-                Logout
               </button>
             </div>
           </div>
@@ -521,15 +316,6 @@ const App = () => {
                   <Mail className="w-4 h-4 mr-3" />
                   Contact
                 </button>
-                <div className="pt-3 border-t border-gray-200">
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center justify-center px-4 py-2.5 bg-red-500 text-white rounded-lg hover:bg-red-600 transition font-medium text-sm"
-                  >
-                    <LogOut className="w-4 h-4 mr-2" />
-                    Logout
-                  </button>
-                </div>
               </div>
             </div>
           )}
@@ -608,7 +394,7 @@ const App = () => {
                 </div>
                 
                 {/* API Key Configuration */}
-                <div className="pt-3 sm:pt-4 border-t border-gray-200">
+                <div className="pt-3 sm:pt-4 border-t border-gray-200 flex justify-between items-center">
                   <button
                     type="button"
                     onClick={() => setShowApiKeyInput(true)}
@@ -617,6 +403,17 @@ const App = () => {
                     <Shield className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                     Configure VirusTotal API Key for better detection
                   </button>
+                  
+                  {urlHistory.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={clearHistory}
+                      className="text-xs sm:text-sm text-red-600 hover:text-red-800 font-medium flex items-center"
+                    >
+                      <Trash2 className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                      Clear History
+                    </button>
+                  )}
                 </div>
               </form>
             </div>
@@ -859,11 +656,7 @@ const App = () => {
                   </li>
                   <li className="flex items-start">
                     <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm sm:text-base"><strong>Personal URL History:</strong> Track all your shortened URLs with their security status and detailed metrics.</span>
-                  </li>
-                  <li className="flex items-start">
-                    <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 mr-2 sm:mr-3 mt-0.5 flex-shrink-0" />
-                    <span className="text-sm sm:text-base"><strong>Secure Authentication:</strong> Your data is protected with robust authentication and user-specific storage.</span>
+                    <span className="text-sm sm:text-base"><strong>URL History:</strong> Track all your shortened URLs with their security status and detailed metrics.</span>
                   </li>
                 </ul>
               </div>
